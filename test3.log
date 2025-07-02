@@ -1,0 +1,20 @@
+filename = data/test1/source.obj
+Triangle Mesh: Vertex : 11292; Face : 22516; Edge : 33808
+
+filename = data/test1/target.obj
+Triangle Mesh: Vertex : 11292; Face : 22516; Edge : 33808
+
+Loaded 5 robot path points from data/test1/robot_path.txt
+registration to initial... (mesh scale: 1)
+Adding 5 robot path nodes to deformation graph...
+Robot path nodes added. Total nodes: 101
+non-rigid registration... (graph node number: 101)
+Coarse Stage: optimize w_align = 1 | w_smo = 0.0121951 | w_rot = 0.0029703 | w_arap = 7.3947
+Fine Stage: optimize w_align = 1 | w_arap = 11.1335
+Applied ARAP transformations to robot path
+Registration done!
+initialize time : 0.771439 s 	non-rigid reg running time = 22.1908 s
+write the result to data/test1/test_robot_params_res.ply
+
+Saved 5 robot path points to data/test1/test_robot_params_newpath.txt
+Robot path saved to data/test1/test_robot_params_newpath.txt

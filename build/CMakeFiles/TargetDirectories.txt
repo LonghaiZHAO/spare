@@ -1,0 +1,4 @@
+/workspace/spare/build/CMakeFiles/spare.dir
+/workspace/spare/build/CMakeFiles/data.dir
+/workspace/spare/build/CMakeFiles/edit_cache.dir
+/workspace/spare/build/CMakeFiles/rebuild_cache.dir

@@ -4,6 +4,7 @@
 #include "tools/tools.h"
 #include "tools/Types.h"
 #include "tools/OmpHelper.h"
+#include "tools/robot_path.h"
 
 class Registration
 {
@@ -55,6 +56,11 @@ protected:
 public:
     // adjusted paras
     RegParas pars_;
+    
+    // Robot path support
+    RobotPath* robot_path_;
+    std::string robot_path_file_;
+    std::string output_robot_path_file_;
 
 public:
     virtual Scalar DoNonRigid() { return 0.0; }

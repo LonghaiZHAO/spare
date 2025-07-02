@@ -2,6 +2,7 @@
 #define QN_WELSCH_H_
 #include "Registration.h"
 #include "tools/nodeSampler.h"
+#include "tools/robot_path.h"
 
 
 #ifdef USE_PARDISO
@@ -82,6 +83,11 @@ private:
     // bool                    src_has_faces_; 
     int                     align_sampling_num_ = 3000;
 	
+    // Robot path support
+    RobotPath*              robot_path_;
+    std::vector<size_t>     robot_path_node_indices_;  // indices of robot path nodes in deformation graph
+    bool                    use_robot_path_;
+	
     // weights of terms during the optimization process 
     Scalar          w_align;      
     Scalar          w_smo;        
@@ -112,6 +118,12 @@ private:
     // Aux_tool function
     Scalar CalcEdgelength(Mesh* mesh, int type);
 
+public:
+    // Robot path functions
+    void SetRobotPath(RobotPath* robot_path);
+    void AddRobotPathNodes();
+    void ExtractRobotPathTransformations();
+    void ApplyTransformationsToRobotPath();
 	
 };
 #endif

@@ -1,0 +1,14 @@
+filename = data/test1/source.obj
+Triangle Mesh: Vertex : 11292; Face : 22516; Edge : 33808
+
+filename = data/test1/target.obj
+Triangle Mesh: Vertex : 11292; Face : 22516; Edge : 33808
+
+registration to initial... (mesh scale: 1)
+non-rigid registration... (graph node number: 96)
+Coarse Stage: optimize w_align = 1 | w_smo = 0.0121951 | w_rot = 0.003125 | w_arap = 7.3947
+Fine Stage: optimize w_align = 1 | w_arap = 11.1335
+Registration done!
+initialize time : 0.75171 s 	non-rigid reg running time = 22.4319 s
+write the result to data/test1/test_original_res.ply
+

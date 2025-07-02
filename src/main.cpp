@@ -1,5 +1,6 @@
 #include "tools/io_mesh.h"
 #include "tools/OmpHelper.h"
+#include "tools/robot_path.h"
 #include "NonRigidreg.h"
 
 
@@ -11,6 +12,10 @@ int main(int argc, char **argv)
     std::string tar_file;
     std::string out_file, outpath;
     std::string landmark_file;
+    std::string robot_path_file;
+    std::string output_robot_path_file;
+    bool use_robot_path = false;
+    RobotPath robot_path;
     RegParas paras;
     Scalar input_w_smo = 0.01;
 	Scalar input_w_rot = 1e-4; 
@@ -25,7 +30,14 @@ int main(int argc, char **argv)
         tar_file = argv[2];
         outpath = argv[3];  
     }
-    
+    else if(argc==5)
+    {
+        src_file = argv[1];
+        robot_path_file = argv[2];
+        tar_file = argv[3];
+        outpath = argv[4];
+        use_robot_path = true;
+    }
     else if(argc==10)
     {
         src_file = argv[1];
@@ -38,11 +50,26 @@ int main(int argc, char **argv)
         input_w_arap_fine = std::stod(argv[8]);
         normalize = bool(std::stoi(argv[9]));
     }
-    
+    else if(argc==11)
+    {
+        src_file = argv[1];
+        robot_path_file = argv[2];
+        tar_file = argv[3];
+        outpath = argv[4];
+        input_radius = std::stod(argv[5]);
+        input_w_smo = std::stod(argv[6]);
+        input_w_rot = std::stod(argv[7]);
+		input_w_arap_coarse = std::stod(argv[8]);
+        input_w_arap_fine = std::stod(argv[9]);
+        normalize = bool(std::stoi(argv[10]));
+        use_robot_path = true;
+    }
     else
     {
         std::cout << "Usage: <srcFile> <tarFile> <outPath>\n" << std::endl;
-        std::cout << "    or <srcFile> <tarFile> <outPath> <radius> <w_smo> <w_rot> <w_arap_c> <w_arap_f> <use_normalize>" << std::endl;
+        std::cout << "    or <srcFile> <srcPathFile> <tarFile> <outPath>" << std::endl;
+        std::cout << "    or <srcFile> <tarFile> <outPath> <radius> <w_reg> <w_rot> <w_arap_c> <w_arap_f> <use_normalize>" << std::endl;
+        std::cout << "    or <srcFile> <srcPathFile> <tarFile> <outPath> <radius> <w_reg> <w_rot> <w_arap_c> <w_arap_f> <use_normalize>" << std::endl;
         exit(0);
     }
 
@@ -67,12 +94,25 @@ int main(int argc, char **argv)
     paras.print_each_step_info = false;
     out_file = outpath + "_res.ply";
     std::string out_info = outpath + "_params.txt"; 
-    paras.out_each_step_info = outpath; 
+    paras.out_each_step_info = outpath;
+    
+    // Setup robot path output file
+    if (use_robot_path) {
+        output_robot_path_file = outpath + "_newpath.txt";
+    } 
 
     read_data(src_file, src_mesh);
     read_data(tar_file, tar_mesh);
     if(src_mesh.n_vertices()==0 || tar_mesh.n_vertices()==0)
         exit(0);
+    
+    // Load robot path if specified
+    if (use_robot_path) {
+        if (!robot_path.loadFromFile(robot_path_file)) {
+            std::cerr << "Failed to load robot path file: " << robot_path_file << std::endl;
+            exit(1);
+        }
+    }
 
     if(src_mesh.n_vertices() != tar_mesh.n_vertices())
         paras.calc_gt_err = false;
@@ -90,6 +130,11 @@ int main(int argc, char **argv)
     paras.mesh_scale = scale;
     NonRigidreg* reg;
     reg = new NonRigidreg;
+    
+    // Set robot path if specified
+    if (use_robot_path) {
+        reg->SetRobotPath(&robot_path);
+    }
 
     Timer time;
     std::cout << "registration to initial... (mesh scale: " << scale << ")" << std::endl;
@@ -111,6 +156,14 @@ int main(int argc, char **argv)
 
     std::cout<< "write the result to " << out_file << "\n" << std::endl;
 
+    // Save robot path if specified
+    if (use_robot_path) {
+        if (robot_path.saveToFile(output_robot_path_file)) {
+            std::cout << "Robot path saved to " << output_robot_path_file << std::endl;
+        } else {
+            std::cerr << "Failed to save robot path to " << output_robot_path_file << std::endl;
+        }
+    }
     
     reg->pars_.print_params(out_info);
 

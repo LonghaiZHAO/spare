@@ -6,6 +6,8 @@
 // #define DEBUG
 
 NonRigidreg::NonRigidreg() {
+    robot_path_ = nullptr;
+    use_robot_path_ = false;
 };
 
 NonRigidreg::~NonRigidreg()
@@ -85,6 +87,10 @@ void NonRigidreg::Initialize()
 	if(pars_.use_coarse_reg)
 	{
 		num_sample_nodes = src_sample_nodes.nodeSize();
+		
+		// Add robot path nodes if specified
+		AddRobotPathNodes();
+		
 		pars_.num_sample_nodes = num_sample_nodes;
 
 		X_.resize(12 * num_sample_nodes); X_.setZero();
@@ -120,6 +126,18 @@ void NonRigidreg::Initialize()
 		}
 		rigid_coeff_L_.setFromTriplets(coeffL.begin(), coeffL.end());
 		rigid_coeff_J_.setFromTriplets(coeffJ.begin(), coeffJ.end());
+		
+		// Initialize robot path node transformations if specified
+		if (use_robot_path_) {
+		    Matrix3X robot_positions = robot_path_->getPositions();
+		    int original_num_nodes = num_sample_nodes - robot_path_->size();
+		    
+		    for (size_t i = 0; i < robot_path_->size(); ++i) {
+		        int node_idx = original_num_nodes + i;
+		        // Set translation part to robot path position
+		        X_.segment(12 * node_idx + 9, 3) = robot_positions.col(i);
+		    }
+		}
 		
 		// 0.02s
 		// update coefficient matrices
@@ -273,6 +291,10 @@ Scalar NonRigidreg::DoNonRigid()
 	}
 
 	Scalar gt_err = SetMeshPoints(src_mesh_, deformed_points_);
+	
+	// Apply transformations to robot path if specified
+	ApplyTransformationsToRobotPath();
+	
     return 0;
 }
 
@@ -1136,4 +1158,66 @@ Scalar NonRigidreg::CalcEdgelength(Mesh* mesh, int type)
             med = edges_length.mean();
     }
     return med;
+}
+
+// Robot path functions implementation
+void NonRigidreg::SetRobotPath(RobotPath* robot_path) {
+    robot_path_ = robot_path;
+    use_robot_path_ = (robot_path_ != nullptr && robot_path_->size() > 0);
+}
+
+void NonRigidreg::AddRobotPathNodes() {
+    if (!use_robot_path_) return;
+    
+    std::cout << "Adding " << robot_path_->size() << " robot path nodes to deformation graph..." << std::endl;
+    
+    // Store original number of nodes
+    int original_num_nodes = num_sample_nodes;
+    
+    // Update the number of sample nodes
+    num_sample_nodes += robot_path_->size();
+    
+    // Get robot path positions
+    Matrix3X robot_positions = robot_path_->getPositions();
+    
+    // Store robot path node indices
+    robot_path_node_indices_.clear();
+    robot_path_node_indices_.reserve(robot_path_->size());
+    
+    for (size_t i = 0; i < robot_path_->size(); ++i) {
+        robot_path_node_indices_.push_back(original_num_nodes + i);
+    }
+    
+    std::cout << "Robot path nodes added. Total nodes: " << num_sample_nodes << std::endl;
+}
+
+void NonRigidreg::ExtractRobotPathTransformations() {
+    if (!use_robot_path_) return;
+    
+    std::vector<Affine3> transforms;
+    transforms.reserve(robot_path_->size());
+    
+    for (size_t i = 0; i < robot_path_->size(); ++i) {
+        size_t node_idx = robot_path_node_indices_[i];
+        
+        // Extract rotation matrix (first 9 elements)
+        Matrix33 rotation = Eigen::Map<const Matrix33>(X_.data() + 12 * node_idx, 3, 3);
+        
+        // Extract translation vector (last 3 elements)
+        Vector3 translation = X_.segment(12 * node_idx + 9, 3);
+        
+        // Project to SE(3)
+        Affine3 transform = projectToSE3(rotation, translation);
+        transforms.push_back(transform);
+    }
+    
+    // Apply transformations to robot path
+    robot_path_->applyTransformations(transforms);
+}
+
+void NonRigidreg::ApplyTransformationsToRobotPath() {
+    if (!use_robot_path_) return;
+    
+    ExtractRobotPathTransformations();
+    std::cout << "Applied ARAP transformations to robot path" << std::endl;
 }
